@@ -138,6 +138,8 @@ export const updateTicketStatus = (
   assignedTo?: string,
   department?: string,
   resolutionNotes?: string,
+  userRole?: string,
+  userId?: string,
 ) =>
   post<TicketDetail>(`/api/tickets/${encodeURIComponent(ticketId)}/status`, {
     ...(status ? { status } : {}),
@@ -145,6 +147,8 @@ export const updateTicketStatus = (
     ...(assignedTo !== undefined ? { assigned_to: assignedTo } : {}),
     ...(department !== undefined ? { department } : {}),
     ...(resolutionNotes !== undefined ? { resolution_notes: resolutionNotes } : {}),
+    ...(userRole ? { user_role: userRole } : {}),
+    ...(userId ? { user_id: userId } : {}),
   });
 
 // ---- admin session ----

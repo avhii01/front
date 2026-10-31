@@ -67,6 +67,12 @@ export function TicketWorkspace({ ticketId, onOpenOrder, onBack, currentUser }: 
   const [notice, setNotice] = useState<string | null>(null);
   const [teamMembers, setTeamMembers] = useState<SupportMember[]>(() => getSupportTeam());
 
+  const isAdmin = Boolean(
+    currentUser &&
+      ((currentUser.role || '').toLowerCase().includes('admin') ||
+        (currentUser.id || '').toUpperCase().startsWith('ADM')),
+  );
+
   useEffect(() => {
     const handleTeamUpdate = () => setTeamMembers(getSupportTeam());
     window.addEventListener('relay-team-updated', handleTeamUpdate);
@@ -128,7 +134,16 @@ export function TicketWorkspace({ ticketId, onOpenOrder, onBack, currentUser }: 
     setStatusBusy(true);
     setError(null);
     try {
-      await updateTicketStatus(ticketId, undefined, undefined, val);
+      await updateTicketStatus(
+        ticketId,
+        undefined,
+        undefined,
+        val,
+        undefined,
+        undefined,
+        currentUser?.role,
+        currentUser?.id,
+      );
       setNotice(`Assigned person updated to "${val}" in database.`);
       setIsAssigneeDirty(false);
       setAssigneeInput(val === 'Unassigned' ? '' : val);
@@ -218,6 +233,8 @@ export function TicketWorkspace({ ticketId, onOpenOrder, onBack, currentUser }: 
   const queryText = data.query || ticket.confirmed_summary || ticket.summary || humanize((ticket.category ?? ticket.reason_code).toLowerCase());
   const dept = data.department || getDepartment(ticket.category, ticket.reason_code);
   const assignee = data.assigned_to || 'Unassigned';
+  const isAssigned = assignee !== 'Unassigned' && Boolean(assignee.trim());
+  const canReassign = isAdmin || !isAssigned;
   const customerName = data.customer ? `${data.customer.name} (${data.customer.email})` : 'Customer';
   const raisedAt = data.raised_at || ticket.created_at;
   const resolvedAt = data.resolved_at || (isResolved ? ticket.updated_at : null);
@@ -482,91 +499,131 @@ export function TicketWorkspace({ ticketId, onOpenOrder, onBack, currentUser }: 
           </div>
 
           <div className="ticket-hero-field google-field-box" style={{ gridColumn: 'span 2' }}>
-            <span className="ticket-hero-field__label">Who is Working on This Ticket (Assigned Person)</span>
-            <div className="ticket-hero-field__value" style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '6px', flexWrap: 'wrap' }}>
-              <input
-                type="text"
-                value={assigneeInput}
-                onChange={(e) => {
-                  setAssigneeInput(e.target.value);
-                  setIsAssigneeDirty(true);
-                }}
-                placeholder="Assignee name (e.g. Sarah Jenkins)"
-                disabled={isResolved || statusBusy}
-                className="google-input"
-                style={{ padding: '9px 12px', borderRadius: '8px', border: '1.5px solid var(--border)', flex: 1, minWidth: '220px', maxWidth: '340px' }}
-              />
-              <button
-                type="button"
-                className="btn btn--sm btn--primary google-btn"
-                disabled={isResolved || statusBusy}
-                onClick={() => void handleSaveAssignee()}
-              >
-                Save Assignee
-              </button>
-              <button
-                type="button"
-                className="btn btn--sm btn--secondary google-btn-outlined"
-                disabled={isResolved || statusBusy}
-                onClick={() => {
-                  const myName = currentUser?.name || 'Admin Operator';
-                  setAssigneeInput(myName);
-                  setIsAssigneeDirty(true);
-                  void handleSaveAssignee(myName);
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+              <span className="ticket-hero-field__label">Who is Working on This Ticket (Assigned Person)</span>
+              {isAssigned && !isAdmin && (
+                <span className="tag" style={{ background: '#fef7e0', color: '#b06000', border: '1px solid #f9ab00', fontWeight: 600, fontSize: '0.78rem' }}>
+                  🔒 Admin Policy: Reassignment Restricted
+                </span>
+              )}
+            </div>
+
+            {!canReassign ? (
+              <div
+                style={{
+                  marginTop: '8px',
+                  padding: '12px 16px',
+                  background: 'var(--surface-2, #f8fafc)',
+                  border: '1.5px solid var(--border)',
+                  borderRadius: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '12px',
+                  flexWrap: 'wrap',
                 }}
               >
-                Assign to Me
-              </button>
-              {assignee !== 'Unassigned' && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <span style={{ fontSize: '1.25rem' }}>🔒</span>
+                  <div>
+                    <div style={{ fontSize: '0.95rem' }}>
+                      Assigned to: <strong>{assignee}</strong>
+                    </div>
+                    <div className="muted small" style={{ marginTop: '2px' }}>
+                      Once assigned by admin, this ticket cannot be reassigned to another person. Only an Administrator can change the assigned person.
+                    </div>
+                  </div>
+                </div>
+                <span className="badge" style={{ background: '#e8f0fe', color: '#1a73e8', fontWeight: 600 }}>
+                  Active Specialist
+                </span>
+              </div>
+            ) : (
+              <div className="ticket-hero-field__value" style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '6px', flexWrap: 'wrap' }}>
+                <input
+                  type="text"
+                  value={assigneeInput}
+                  onChange={(e) => {
+                    setAssigneeInput(e.target.value);
+                    setIsAssigneeDirty(true);
+                  }}
+                  placeholder="Assignee name (e.g. Sarah Jenkins)"
+                  disabled={isResolved || statusBusy}
+                  className="google-input"
+                  style={{ padding: '9px 12px', borderRadius: '8px', border: '1.5px solid var(--border)', flex: 1, minWidth: '220px', maxWidth: '340px' }}
+                />
                 <button
                   type="button"
-                  className="btn btn--sm btn--ghost google-btn-ghost"
+                  className="btn btn--sm btn--primary google-btn"
+                  disabled={isResolved || statusBusy}
+                  onClick={() => void handleSaveAssignee()}
+                >
+                  Save Assignee
+                </button>
+                <button
+                  type="button"
+                  className="btn btn--sm btn--secondary google-btn-outlined"
                   disabled={isResolved || statusBusy}
                   onClick={() => {
-                    setAssigneeInput('');
+                    const myName = currentUser?.name || 'Admin Operator';
+                    setAssigneeInput(myName);
                     setIsAssigneeDirty(true);
-                    void handleSaveAssignee('Unassigned');
+                    void handleSaveAssignee(myName);
                   }}
                 >
-                  Clear
+                  Assign to Me
                 </button>
-              )}
+                {assignee !== 'Unassigned' && (
+                  <button
+                    type="button"
+                    className="btn btn--sm btn--ghost google-btn-ghost"
+                    disabled={isResolved || statusBusy}
+                    onClick={() => {
+                      setAssigneeInput('');
+                      setIsAssigneeDirty(true);
+                      void handleSaveAssignee('Unassigned');
+                    }}
+                  >
+                    Clear
+                  </button>
+                )}
 
-              {/* Quick Select Support Team Specialist */}
-              <select
-                className="google-select"
-                style={{
-                  padding: '8px 12px',
-                  borderRadius: '8px',
-                  border: '1.5px solid var(--border)',
-                  fontSize: '0.85rem',
-                  maxWidth: '220px',
-                  cursor: isResolved || statusBusy ? 'not-allowed' : 'pointer',
-                }}
-                disabled={isResolved || statusBusy}
-                value=""
-                onChange={(e) => {
-                  if (e.target.value) {
-                    const chosen = e.target.value;
-                    setAssigneeInput(chosen);
-                    setIsAssigneeDirty(true);
-                    void handleSaveAssignee(chosen);
-                  }
-                }}
-                aria-label="Quick assign to team specialist"
-              >
-                <option value="">👥 Reassign to Specialist...</option>
-                {teamMembers.map((m) => (
-                  <option key={m.id} value={m.name}>
-                    {m.name} ({m.role})
-                  </option>
-                ))}
-              </select>
-              <span className="muted small" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span className="google-avatar-dot">👷</span>
-                Currently assigned: <strong>{assignee}</strong>
-              </span>
-            </div>
+                {/* Quick Select Support Team Specialist */}
+                <select
+                  className="google-select"
+                  style={{
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    border: '1.5px solid var(--border)',
+                    fontSize: '0.85rem',
+                    maxWidth: '220px',
+                    cursor: isResolved || statusBusy ? 'not-allowed' : 'pointer',
+                  }}
+                  disabled={isResolved || statusBusy}
+                  value=""
+                  onChange={(e) => {
+                    if (e.target.value) {
+                      const chosen = e.target.value;
+                      setAssigneeInput(chosen);
+                      setIsAssigneeDirty(true);
+                      void handleSaveAssignee(chosen);
+                    }
+                  }}
+                  aria-label="Quick assign to team specialist"
+                >
+                  <option value="">👥 Reassign to Specialist...</option>
+                  {teamMembers.map((m) => (
+                    <option key={m.id} value={m.name}>
+                      {m.name} ({m.role})
+                    </option>
+                  ))}
+                </select>
+                <span className="muted small" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span className="google-avatar-dot">👷</span>
+                  Currently assigned: <strong>{assignee}</strong>
+                </span>
+              </div>
+            )}
           </div>
 
           <div className="ticket-hero-field google-field-box" style={{ gridColumn: 'span 2' }}>

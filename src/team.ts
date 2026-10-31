@@ -195,6 +195,8 @@ export function saveSupportTeam(team: SupportMember[]): void {
 export function addSupportMember(
   data: Omit<SupportMember, 'id' | 'addedAt' | 'activeTicketsCount'> & { password?: string },
   actorName = 'Admin Operator',
+  actorRole = 'Operations Admin',
+  actorId = 'ADM-9041',
 ): SupportMember {
   const current = getSupportTeam();
   const nextNum = 1000 + current.length + 1;
@@ -222,6 +224,8 @@ export function addSupportMember(
       status: newMember.status,
       active_tickets_count: newMember.activeTicketsCount,
       password: newMember.password,
+      requester_role: actorRole,
+      requester_id: actorId,
     }),
   }).catch(() => {});
 
@@ -274,14 +278,19 @@ export function updateSupportMember(
   }
 }
 
-export function removeSupportMember(id: string, actorName = 'Admin Operator'): void {
+export function removeSupportMember(
+  id: string,
+  actorName = 'Admin Operator',
+  actorRole = 'Operations Admin',
+  actorId = 'ADM-9041',
+): void {
   const current = getSupportTeam();
   const target = current.find((m) => m.id === id);
   const updated = current.filter((m) => m.id !== id);
   saveSupportTeam(updated);
 
-  // Sync to Neon PostgreSQL
-  void fetch(`${API_URL}/api/team/${id}`, {
+  // Sync to Neon PostgreSQL with requester credentials
+  void fetch(`${API_URL}/api/team/${id}?requester_role=${encodeURIComponent(actorRole)}&requester_id=${encodeURIComponent(actorId)}`, {
     method: 'DELETE',
   }).catch(() => {});
 

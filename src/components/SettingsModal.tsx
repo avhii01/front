@@ -144,6 +144,7 @@ export function SettingsModal({
   }, [initialTab, isOpen]);
 
   // Support Team State
+  const isAdmin = Boolean((user.role || '').toLowerCase().includes('admin') || (user.id || '').toUpperCase().startsWith('ADM'));
   const [team, setTeam] = useState<SupportMember[]>(() => getSupportTeam());
   const [teamLogs, setTeamLogs] = useState<TeamLogEntry[]>(() => getTeamLogs());
   const [teamSubView, setTeamSubView] = useState<'members' | 'logs'>('members');
@@ -274,6 +275,10 @@ export function SettingsModal({
 
   const handleAddMember = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isAdmin) {
+      setMemberNotice('❌ Permission Denied: Only administrators have policy permissions to add team members.');
+      return;
+    }
     if (!newMemberName.trim() || !newMemberEmail.trim()) return;
 
     const added = addSupportMember(
@@ -286,6 +291,8 @@ export function SettingsModal({
         password: newMemberPassword.trim() || 'relay123',
       },
       user.name,
+      user.role,
+      user.id,
     );
 
     setTeam(getSupportTeam());
@@ -305,8 +312,12 @@ export function SettingsModal({
   };
 
   const handleRemoveMember = (id: string, name: string) => {
+    if (!isAdmin) {
+      alert('Permission Denied: Only administrators can remove team members.');
+      return;
+    }
     if (window.confirm(`Are you sure you want to remove ${name} from the support team roster?`)) {
-      removeSupportMember(id, user.name);
+      removeSupportMember(id, user.name, user.role, user.id);
       setTeam(getSupportTeam());
       setTeamLogs(getTeamLogs());
     }
@@ -740,103 +751,125 @@ export function SettingsModal({
               {/* Sub-view 1: Team Members & Add Form */}
               {teamSubView === 'members' && (
                 <div style={{ display: 'grid', gap: '20px' }}>
-                  {/* Add New Support Person Card */}
-                  <div
-                    style={{
-                      background: 'var(--surface-2)',
-                      padding: '16px 20px',
-                      borderRadius: '10px',
-                      border: '1.5px solid var(--border)',
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                      <span style={{ fontSize: '1.2rem' }}>➕</span>
-                      <strong style={{ fontSize: '1rem' }}>Add Support Person or Specialist to Resolve Tickets</strong>
+                  {!isAdmin ? (
+                    <div
+                      style={{
+                        background: 'var(--surface-2, #f8fafc)',
+                        padding: '16px 20px',
+                        borderRadius: '10px',
+                        border: '1.5px solid var(--border)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px',
+                      }}
+                    >
+                      <span style={{ fontSize: '1.4rem' }}>🛡️</span>
+                      <div>
+                        <strong style={{ fontSize: '0.98rem' }}>Administrator Policy Notice</strong>
+                        <p className="muted small" style={{ margin: '3px 0 0 0' }}>
+                          Only administrators have policy permission to add, modify, or remove support team members. Support specialists and operators have read-only access to view the team roster.
+                        </p>
+                      </div>
                     </div>
-                    <p className="muted small" style={{ margin: '0 0 12px 0' }}>
-                      Add non-admin or admin team members (Support Specialists, Billing Specialists, Logistics Coordinators) who can be assigned tickets, investigate customer issues, and execute resolutions.
-                    </p>
-
-                    {memberNotice && (
-                      <div className="notice google-notice" style={{ marginBottom: '14px' }}>
-                        {memberNotice}
+                  ) : (
+                    /* Add New Support Person Card */
+                    <div
+                      style={{
+                        background: 'var(--surface-2)',
+                        padding: '16px 20px',
+                        borderRadius: '10px',
+                        border: '1.5px solid var(--border)',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                        <span style={{ fontSize: '1.2rem' }}>➕</span>
+                        <strong style={{ fontSize: '1rem' }}>Add Support Person or Specialist to Resolve Tickets</strong>
                       </div>
-                    )}
+                      <p className="muted small" style={{ margin: '0 0 12px 0' }}>
+                        Add non-admin or admin team members (Support Specialists, Billing Specialists, Logistics Coordinators) who can be assigned tickets, investigate customer issues, and execute resolutions.
+                      </p>
 
-                    <form onSubmit={handleAddMember} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
-                      <label className="field" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <span className="field__label" style={{ fontSize: '0.82rem', fontWeight: 600 }}>Full Name *</span>
-                        <input
-                          type="text"
-                          value={newMemberName}
-                          onChange={(e) => setNewMemberName(e.target.value)}
-                          placeholder="e.g. Priya Sharma"
-                          className="google-input"
-                          required
-                        />
-                      </label>
+                      {memberNotice && (
+                        <div className="notice google-notice" style={{ marginBottom: '14px' }}>
+                          {memberNotice}
+                        </div>
+                      )}
 
-                      <label className="field" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <span className="field__label" style={{ fontSize: '0.82rem', fontWeight: 600 }}>Work Email *</span>
-                        <input
-                          type="email"
-                          value={newMemberEmail}
-                          onChange={(e) => setNewMemberEmail(e.target.value)}
-                          placeholder="priya.sharma@relay.internal"
-                          className="google-input"
-                          required
-                        />
-                      </label>
+                      <form onSubmit={handleAddMember} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
+                        <label className="field" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          <span className="field__label" style={{ fontSize: '0.82rem', fontWeight: 600 }}>Full Name *</span>
+                          <input
+                            type="text"
+                            value={newMemberName}
+                            onChange={(e) => setNewMemberName(e.target.value)}
+                            placeholder="e.g. Priya Sharma"
+                            className="google-input"
+                            required
+                          />
+                        </label>
 
-                      <label className="field" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <span className="field__label" style={{ fontSize: '0.82rem', fontWeight: 600 }}>Support Role *</span>
-                        <select
-                          value={newMemberRole}
-                          onChange={(e) => setNewMemberRole(e.target.value as SupportRole)}
-                          className="google-select"
-                        >
-                          {AVAILABLE_ROLES.map((r) => (
-                            <option key={r.role} value={r.role}>
-                              {r.label}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
+                        <label className="field" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          <span className="field__label" style={{ fontSize: '0.82rem', fontWeight: 600 }}>Work Email *</span>
+                          <input
+                            type="email"
+                            value={newMemberEmail}
+                            onChange={(e) => setNewMemberEmail(e.target.value)}
+                            placeholder="priya.sharma@relay.internal"
+                            className="google-input"
+                            required
+                          />
+                        </label>
 
-                      <label className="field" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <span className="field__label" style={{ fontSize: '0.82rem', fontWeight: 600 }}>Login Password *</span>
-                        <input
-                          type="text"
-                          value={newMemberPassword}
-                          onChange={(e) => setNewMemberPassword(e.target.value)}
-                          placeholder="e.g. relay123"
-                          className="google-input"
-                          required
-                        />
-                      </label>
+                        <label className="field" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          <span className="field__label" style={{ fontSize: '0.82rem', fontWeight: 600 }}>Support Role *</span>
+                          <select
+                            value={newMemberRole}
+                            onChange={(e) => setNewMemberRole(e.target.value as SupportRole)}
+                            className="google-select"
+                          >
+                            {AVAILABLE_ROLES.map((r) => (
+                              <option key={r.role} value={r.role}>
+                                {r.label}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
 
-                      <label className="field" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <span className="field__label" style={{ fontSize: '0.82rem', fontWeight: 600 }}>Department *</span>
-                        <select
-                          value={newMemberDept}
-                          onChange={(e) => setNewMemberDept(e.target.value)}
-                          className="google-select"
-                        >
-                          {DEPARTMENTS.map((d) => (
-                            <option key={d} value={d}>
-                              {d}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
+                        <label className="field" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          <span className="field__label" style={{ fontSize: '0.82rem', fontWeight: 600 }}>Login Password *</span>
+                          <input
+                            type="text"
+                            value={newMemberPassword}
+                            onChange={(e) => setNewMemberPassword(e.target.value)}
+                            placeholder="e.g. relay123"
+                            className="google-input"
+                            required
+                          />
+                        </label>
 
-                      <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'flex-end', marginTop: '4px' }}>
-                        <button type="submit" className="btn btn--primary btn--sm">
-                          + Add Support Member
-                        </button>
-                      </div>
-                    </form>
-                  </div>
+                        <label className="field" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          <span className="field__label" style={{ fontSize: '0.82rem', fontWeight: 600 }}>Department *</span>
+                          <select
+                            value={newMemberDept}
+                            onChange={(e) => setNewMemberDept(e.target.value)}
+                            className="google-select"
+                          >
+                            {DEPARTMENTS.map((d) => (
+                              <option key={d} value={d}>
+                                {d}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+
+                        <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'flex-end', marginTop: '4px' }}>
+                          <button type="submit" className="btn btn--primary btn--sm">
+                            + Add Support Member
+                          </button>
+                        </div>
+                      </form>
+                    </div>
+                  )}
 
                   {/* Active Support Team Roster */}
                   <div>
@@ -944,12 +977,12 @@ export function SettingsModal({
                                 {member.status === 'offline' && '⚪ Offline'}
                               </button>
 
-                              {!isSelf && (
+                              {isAdmin && !isSelf && (
                                 <button
                                   type="button"
                                   className="btn btn--sm btn--ghost"
                                   onClick={() => handleRemoveMember(member.id, member.name)}
-                                  title="Remove member from team"
+                                  title="Remove member from team (Admin policy)"
                                   style={{ color: 'var(--bad, #d93025)', fontSize: '0.8rem', padding: '4px 8px' }}
                                 >
                                   Remove
