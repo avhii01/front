@@ -150,6 +150,7 @@ export function SettingsModal({
   // Add Member Form State
   const [newMemberName, setNewMemberName] = useState('');
   const [newMemberEmail, setNewMemberEmail] = useState('');
+  const [newMemberPassword, setNewMemberPassword] = useState('relay123');
   const [newMemberRole, setNewMemberRole] = useState<SupportRole>('Support Specialist');
   const [newMemberDept, setNewMemberDept] = useState<string>(DEPARTMENTS[0] || 'Customer Operations & Reliability');
   const [memberNotice, setMemberNotice] = useState<string | null>(null);
@@ -235,16 +236,18 @@ export function SettingsModal({
         role: newMemberRole,
         department: newMemberDept,
         status: 'active',
+        password: newMemberPassword.trim() || 'relay123',
       },
       user.name,
     );
 
     setTeam(getSupportTeam());
     setTeamLogs(getTeamLogs());
-    setMemberNotice(`✓ Added ${added.name} (${added.role}) to the support team with ID ${added.id}. They can now be assigned tickets.`);
+    setMemberNotice(`✓ Added ${added.name} (${added.role}) with ID ${added.id} and password "${added.password}". Credentials saved to database.`);
     setNewMemberName('');
     setNewMemberEmail('');
-    setTimeout(() => setMemberNotice(null), 5000);
+    setNewMemberPassword('relay123');
+    setTimeout(() => setMemberNotice(null), 6000);
   };
 
   const handleToggleMemberStatus = (id: string, currentStatus: SupportMember['status']) => {
@@ -723,6 +726,18 @@ export function SettingsModal({
                       </label>
 
                       <label className="field" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <span className="field__label" style={{ fontSize: '0.82rem', fontWeight: 600 }}>Login Password *</span>
+                        <input
+                          type="text"
+                          value={newMemberPassword}
+                          onChange={(e) => setNewMemberPassword(e.target.value)}
+                          placeholder="e.g. relay123"
+                          className="google-input"
+                          required
+                        />
+                      </label>
+
+                      <label className="field" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                         <span className="field__label" style={{ fontSize: '0.82rem', fontWeight: 600 }}>Department *</span>
                         <select
                           value={newMemberDept}
@@ -809,7 +824,10 @@ export function SettingsModal({
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                                   <strong style={{ fontSize: '0.98rem' }}>{member.name}</strong>
                                   <code style={{ fontSize: '0.78rem', background: 'var(--surface-2)', padding: '2px 6px', borderRadius: '4px' }}>
-                                    {member.id}
+                                    ID: {member.id}
+                                  </code>
+                                  <code style={{ fontSize: '0.78rem', background: '#fef7e0', color: '#b06000', padding: '2px 6px', borderRadius: '4px', border: '1px solid #f9ab00' }}>
+                                    🔑 Password: {member.password || 'relay123'}
                                   </code>
                                   {isSelf && (
                                     <span className="tag" style={{ background: '#e8f0fe', color: '#1a73e8', fontSize: '0.72rem' }}>

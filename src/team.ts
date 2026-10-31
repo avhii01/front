@@ -16,6 +16,8 @@ export interface SupportMember {
   status: 'active' | 'away' | 'offline';
   activeTicketsCount: number;
   addedAt: string;
+  password?: string;
+  passwordHash?: string;
 }
 
 export interface TeamLogEntry {
@@ -40,6 +42,7 @@ export const DEFAULT_SUPPORT_TEAM: SupportMember[] = [
     status: 'active',
     activeTicketsCount: 4,
     addedAt: '2026-10-25T08:00:00Z',
+    password: 'admin-relay',
   },
   {
     id: 'SPT-1002',
@@ -50,6 +53,7 @@ export const DEFAULT_SUPPORT_TEAM: SupportMember[] = [
     status: 'active',
     activeTicketsCount: 2,
     addedAt: '2026-10-26T09:15:00Z',
+    password: 'relay123',
   },
   {
     id: 'SPT-1003',
@@ -60,6 +64,7 @@ export const DEFAULT_SUPPORT_TEAM: SupportMember[] = [
     status: 'active',
     activeTicketsCount: 3,
     addedAt: '2026-10-27T10:30:00Z',
+    password: 'relay123',
   },
   {
     id: 'SPT-1004',
@@ -70,6 +75,7 @@ export const DEFAULT_SUPPORT_TEAM: SupportMember[] = [
     status: 'active',
     activeTicketsCount: 1,
     addedAt: '2026-10-28T11:45:00Z',
+    password: 'relay123',
   },
 ];
 
@@ -133,6 +139,8 @@ export async function syncTeamFromBackend(): Promise<SupportMember[]> {
         status?: string;
         active_tickets_count?: number;
         created_at?: string;
+        password?: string;
+        password_hash?: string;
       }) => ({
         id: item.id,
         name: item.name,
@@ -142,6 +150,8 @@ export async function syncTeamFromBackend(): Promise<SupportMember[]> {
         status: (item.status || 'active') as 'active' | 'away' | 'offline',
         activeTicketsCount: item.active_tickets_count ?? 0,
         addedAt: item.created_at || new Date().toISOString(),
+        password: item.password || (item.id === 'ADM-9041' ? 'admin-relay' : 'relay123'),
+        passwordHash: item.password_hash,
       }));
       sessionStorage.setItem(STORAGE_KEY_TEAM, JSON.stringify(mapped));
       notifyTeamUpdated();
@@ -183,16 +193,18 @@ export function saveSupportTeam(team: SupportMember[]): void {
 }
 
 export function addSupportMember(
-  data: Omit<SupportMember, 'id' | 'addedAt' | 'activeTicketsCount'>,
+  data: Omit<SupportMember, 'id' | 'addedAt' | 'activeTicketsCount'> & { password?: string },
   actorName = 'Admin Operator',
 ): SupportMember {
   const current = getSupportTeam();
   const nextNum = 1000 + current.length + 1;
+  const rawPassword = data.password?.trim() || 'relay123';
   const newMember: SupportMember = {
     ...data,
     id: `SPT-${nextNum}`,
     addedAt: new Date().toISOString(),
     activeTicketsCount: 0,
+    password: rawPassword,
   };
   const updated = [...current, newMember];
   saveSupportTeam(updated);
@@ -209,6 +221,7 @@ export function addSupportMember(
       department: newMember.department,
       status: newMember.status,
       active_tickets_count: newMember.activeTicketsCount,
+      password: newMember.password,
     }),
   }).catch(() => {});
 
