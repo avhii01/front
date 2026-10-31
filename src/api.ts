@@ -19,7 +19,10 @@ import type {
   TicketListItem,
 } from './types';
 
-export const API_URL: string = (import.meta.env.VITE_API_URL ?? 'http://localhost:8000').replace(/\/+$/, '');
+export const API_URL: string = (
+  import.meta.env.VITE_API_URL ||
+  (import.meta.env.DEV ? 'http://localhost:8000' : 'https://backend-pvco.onrender.com')
+).replace(/\/+$/, '');
 
 export class ApiError extends Error {
   readonly status: number;
