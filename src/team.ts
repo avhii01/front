@@ -1,3 +1,5 @@
+import { API_URL } from './api';
+
 export type SupportRole =
   | 'Support Specialist'
   | 'Senior Specialist'
@@ -111,8 +113,52 @@ function notifyTeamUpdated() {
   }
 }
 
+let hasInitiatedSync = false;
+
+export async function syncTeamFromBackend(): Promise<SupportMember[]> {
+  if (typeof window === 'undefined') return DEFAULT_SUPPORT_TEAM;
+  try {
+    const res = await fetch(`${API_URL}/api/team`, {
+      headers: { Accept: 'application/json' },
+    });
+    if (!res.ok) return getSupportTeam();
+    const data = await res.json();
+    if (Array.isArray(data) && data.length > 0) {
+      const mapped: SupportMember[] = data.map((item: {
+        id: string;
+        name: string;
+        email: string;
+        role: string;
+        department: string;
+        status?: string;
+        active_tickets_count?: number;
+        created_at?: string;
+      }) => ({
+        id: item.id,
+        name: item.name,
+        email: item.email,
+        role: item.role as SupportRole,
+        department: item.department,
+        status: (item.status || 'active') as 'active' | 'away' | 'offline',
+        activeTicketsCount: item.active_tickets_count ?? 0,
+        addedAt: item.created_at || new Date().toISOString(),
+      }));
+      sessionStorage.setItem(STORAGE_KEY_TEAM, JSON.stringify(mapped));
+      notifyTeamUpdated();
+      return mapped;
+    }
+  } catch {
+    // network or backend down, fallback gracefully
+  }
+  return getSupportTeam();
+}
+
 export function getSupportTeam(): SupportMember[] {
   if (typeof window === 'undefined') return DEFAULT_SUPPORT_TEAM;
+  if (!hasInitiatedSync) {
+    hasInitiatedSync = true;
+    void syncTeamFromBackend();
+  }
   try {
     const raw = sessionStorage.getItem(STORAGE_KEY_TEAM);
     if (!raw) {
@@ -151,6 +197,21 @@ export function addSupportMember(
   const updated = [...current, newMember];
   saveSupportTeam(updated);
 
+  // Sync to Neon PostgreSQL
+  void fetch(`${API_URL}/api/team`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      id: newMember.id,
+      name: newMember.name,
+      email: newMember.email,
+      role: newMember.role,
+      department: newMember.department,
+      status: newMember.status,
+      active_tickets_count: newMember.activeTicketsCount,
+    }),
+  }).catch(() => {});
+
   logTeamActivity(
     'member_added',
     `Added ${newMember.name} (${newMember.role}) to ${newMember.department} support roster`,
@@ -177,6 +238,19 @@ export function updateSupportMember(
   });
   saveSupportTeam(updated);
 
+  // Sync to Neon PostgreSQL
+  void fetch(`${API_URL}/api/team/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      name: patch.name,
+      role: patch.role,
+      department: patch.department,
+      status: patch.status,
+      active_tickets_count: patch.activeTicketsCount,
+    }),
+  }).catch(() => {});
+
   if (memberName) {
     logTeamActivity(
       'member_updated',
@@ -192,6 +266,11 @@ export function removeSupportMember(id: string, actorName = 'Admin Operator'): v
   const target = current.find((m) => m.id === id);
   const updated = current.filter((m) => m.id !== id);
   saveSupportTeam(updated);
+
+  // Sync to Neon PostgreSQL
+  void fetch(`${API_URL}/api/team/${id}`, {
+    method: 'DELETE',
+  }).catch(() => {});
 
   if (target) {
     logTeamActivity(
