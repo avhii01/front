@@ -161,6 +161,34 @@ export interface AdminSignInResponse {
 export const adminSignIn = (email: string, password: string) =>
   post<AdminSignInResponse>('/api/admin/session', { email, password });
 
+export interface UpdateCredentialsPayload {
+  member_id: string;
+  new_id?: string;
+  name?: string;
+  email?: string;
+  current_password?: string;
+  new_password?: string;
+}
+
+export interface UpdateCredentialsResponse {
+  status: string;
+  message: string;
+  member: {
+    id: string;
+    name: string;
+    email: string;
+    role: string;
+    department: string;
+    status: string;
+    password?: string;
+    password_hash?: string;
+  };
+  token: string;
+}
+
+export const updateUserCredentials = (payload: UpdateCredentialsPayload) =>
+  post<UpdateCredentialsResponse>('/api/user/credentials', payload);
+
 // ---- customer support (simulated sign-in; server-side ownership checks) ----
 export const customerSignIn = (email: string, password: string) =>
   post<CustomerSignInResponse>('/api/customer/session', { email, password });

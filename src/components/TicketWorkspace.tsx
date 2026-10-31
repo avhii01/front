@@ -12,6 +12,7 @@ interface Props {
   ticketId: string;
   onOpenOrder: (orderId: string) => void;
   onBack?: () => void;
+  currentUser?: { id: string; name: string; email: string; role: string };
 }
 
 const DEPARTMENTS = [
@@ -52,7 +53,7 @@ function getDepartment(category?: string | null, reasonCode?: string | null): st
   return 'Customer Support Operations';
 }
 
-export function TicketWorkspace({ ticketId, onOpenOrder, onBack }: Props) {
+export function TicketWorkspace({ ticketId, onOpenOrder, onBack, currentUser }: Props) {
   const detail = usePolling(() => getTicket(ticketId), ticketId, 3000);
   const [busy, setBusy] = useState(false);
   const [statusBusy, setStatusBusy] = useState(false);
@@ -128,17 +129,18 @@ export function TicketWorkspace({ ticketId, onOpenOrder, onBack }: Props) {
     setError(null);
     try {
       await updateTicketStatus(ticketId, undefined, undefined, val);
-      setNotice(`Assigned person updated to "${val}"`);
+      setNotice(`Assigned person updated to "${val}" in database.`);
       setIsAssigneeDirty(false);
       setAssigneeInput(val === 'Unassigned' ? '' : val);
-      if (val !== 'Unassigned') {
-        logTeamActivity(
-          'ticket_assigned',
-          `Assigned case ${ticketId} to ${val}`,
-          val,
-          ticketId,
-        );
+      if (detail.data) {
+        detail.data.assigned_to = val;
       }
+      logTeamActivity(
+        'ticket_assigned',
+        `Assigned case ${ticketId} to ${val}`,
+        currentUser?.name || 'Admin Operator',
+        ticketId,
+      );
       await detail.refresh();
     } catch (e) {
       setError(errorMessage(e));
@@ -507,9 +509,10 @@ export function TicketWorkspace({ ticketId, onOpenOrder, onBack }: Props) {
                 className="btn btn--sm btn--secondary google-btn-outlined"
                 disabled={isResolved || statusBusy}
                 onClick={() => {
-                  setAssigneeInput('Admin Operator');
+                  const myName = currentUser?.name || 'Admin Operator';
+                  setAssigneeInput(myName);
                   setIsAssigneeDirty(true);
-                  void handleSaveAssignee('Admin Operator');
+                  void handleSaveAssignee(myName);
                 }}
               >
                 Assign to Me
@@ -552,7 +555,7 @@ export function TicketWorkspace({ ticketId, onOpenOrder, onBack }: Props) {
                 }}
                 aria-label="Quick assign to team specialist"
               >
-                <option value="">👥 Assign Specialist...</option>
+                <option value="">👥 Reassign to Specialist...</option>
                 {teamMembers.map((m) => (
                   <option key={m.id} value={m.name}>
                     {m.name} ({m.role})

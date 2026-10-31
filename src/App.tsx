@@ -204,6 +204,7 @@ interface TicketDetailsPageProps {
   onBack: () => void;
   onSelectTicket: (id: string) => void;
   onOpenOrder: (orderId: string) => void;
+  currentUser?: AdminUser;
 }
 
 function TicketDetailsPage({
@@ -212,6 +213,7 @@ function TicketDetailsPage({
   onBack,
   onSelectTicket,
   onOpenOrder,
+  currentUser,
 }: TicketDetailsPageProps) {
   const currentIndex = allTickets.findIndex((item) => item.ticket.id === ticketId);
   const prevTicket = currentIndex > 0 ? allTickets[currentIndex - 1] : null;
@@ -291,6 +293,7 @@ function TicketDetailsPage({
         ticketId={ticketId}
         onOpenOrder={onOpenOrder}
         onBack={onBack}
+        currentUser={currentUser}
       />
     </div>
   );
@@ -566,6 +569,7 @@ function OperationsDashboard({ onSignOut, currentUser, onUpdateUser }: Operation
           <TicketDetailsPage
             ticketId={selectedTicketId}
             allTickets={tickets.data || []}
+            currentUser={currentUser}
             onBack={() => {
               setSelectedTicketId(null);
               safeScrollToTop();

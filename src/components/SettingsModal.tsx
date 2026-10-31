@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { errorMessage, updateUserCredentials } from '../api';
 import { formatDateTime } from '../format';
 import {
   type SupportMember,
@@ -9,6 +10,7 @@ import {
   getSupportTeam,
   getTeamLogs,
   removeSupportMember,
+  syncTeamFromBackend,
   updateSupportMember,
 } from '../team';
 
@@ -155,9 +157,13 @@ export function SettingsModal({
   const [newMemberDept, setNewMemberDept] = useState<string>(DEPARTMENTS[0] || 'Customer Operations & Reliability');
   const [memberNotice, setMemberNotice] = useState<string | null>(null);
 
-  // Profile / Name change state
+  // Profile / Name / ID change state
   const [nameInput, setNameInput] = useState(user.name);
   const [nameNotice, setNameNotice] = useState<string | null>(null);
+  const [idInput, setIdInput] = useState(user.id);
+  const [idNotice, setIdNotice] = useState<{ type: 'ok' | 'error'; text: string } | null>(null);
+  const [idBusy, setIdBusy] = useState(false);
+  const [passwordBusy, setPasswordBusy] = useState(false);
 
   // Password change state
   const [currentPassword, setCurrentPassword] = useState('');
@@ -200,7 +206,35 @@ export function SettingsModal({
     setTimeout(() => setNameNotice(null), 3000);
   };
 
-  const handleUpdatePassword = (e: React.FormEvent) => {
+  const handleSaveId = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIdNotice(null);
+    const trimmedId = idInput.trim();
+    if (!trimmedId) return;
+    if (trimmedId === user.id) {
+      setIdNotice({ type: 'ok', text: `ID is already set to ${trimmedId}` });
+      return;
+    }
+    setIdBusy(true);
+    try {
+      const res = await updateUserCredentials({
+        member_id: user.id,
+        new_id: trimmedId,
+      });
+      onUpdateUser({ id: res.member.id });
+      setIdNotice({
+        type: 'ok',
+        text: `✓ User ID successfully updated to "${res.member.id}" in Neon database!`,
+      });
+      void syncTeamFromBackend();
+    } catch (err) {
+      setIdNotice({ type: 'error', text: errorMessage(err) });
+    } finally {
+      setIdBusy(false);
+    }
+  };
+
+  const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setPasswordNotice(null);
     if (!currentPassword) {
@@ -216,13 +250,26 @@ export function SettingsModal({
       return;
     }
 
-    setPasswordNotice({
-      type: 'ok',
-      text: '✓ Password successfully changed! Your credentials are now updated.',
-    });
-    setCurrentPassword('');
-    setNewPassword('');
-    setConfirmPassword('');
+    setPasswordBusy(true);
+    try {
+      await updateUserCredentials({
+        member_id: user.id,
+        current_password: currentPassword,
+        new_password: newPassword,
+      });
+      setPasswordNotice({
+        type: 'ok',
+        text: '✓ Password successfully changed and saved to Neon database!',
+      });
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      void syncTeamFromBackend();
+    } catch (err) {
+      setPasswordNotice({ type: 'error', text: errorMessage(err) });
+    } finally {
+      setPasswordBusy(false);
+    }
   };
 
   const handleAddMember = (e: React.FormEvent) => {
@@ -514,9 +561,40 @@ export function SettingsModal({
               <hr style={{ border: 'none', borderTop: '1px solid var(--border-light, #e8eaed)', margin: '20px 0' }} />
 
               <section className="settings-section">
+                <h4 className="settings-section-title">Change Specialist / Admin ID</h4>
+                <p className="muted small">
+                  Your staff login identifier stored directly in the Neon <code>team_members</code> table (e.g. <code>ADM-9041</code> or <code>SPT-1002</code>). You can customize this ID and save it to the database.
+                </p>
+                {idNotice && (
+                  <div
+                    className={idNotice.type === 'ok' ? 'notice google-notice' : 'inline-error'}
+                    style={{ margin: '12px 0' }}
+                  >
+                    {idNotice.text}
+                  </div>
+                )}
+                <form onSubmit={handleSaveId} style={{ display: 'flex', gap: '10px', alignItems: 'center', marginTop: '10px', flexWrap: 'wrap' }}>
+                  <input
+                    type="text"
+                    value={idInput}
+                    onChange={(e) => setIdInput(e.target.value)}
+                    placeholder="Enter staff ID (e.g. SPT-1002)"
+                    className="google-input"
+                    style={{ flex: 1, minWidth: '220px', maxWidth: '380px' }}
+                    required
+                  />
+                  <button type="submit" className="btn btn--primary btn--sm" disabled={idBusy || !idInput.trim()}>
+                    {idBusy ? 'Saving ID…' : 'Save ID'}
+                  </button>
+                </form>
+              </section>
+
+              <hr style={{ border: 'none', borderTop: '1px solid var(--border-light, #e8eaed)', margin: '20px 0' }} />
+
+              <section className="settings-section">
                 <h4 className="settings-section-title">Change Account Password</h4>
                 <p className="muted small">
-                  Update your operator login password. Passwords must be at least 6 characters.
+                  Update your operator login password. Passwords will be securely hashed and saved directly into the Neon database.
                 </p>
 
                 {passwordNotice && (
@@ -566,8 +644,8 @@ export function SettingsModal({
                   </label>
 
                   <div style={{ marginTop: '6px' }}>
-                    <button type="submit" className="btn btn--primary btn--sm">
-                      Update Password
+                    <button type="submit" className="btn btn--primary btn--sm" disabled={passwordBusy || !currentPassword || !newPassword}>
+                      {passwordBusy ? 'Saving Password…' : 'Update Password in Database'}
                     </button>
                   </div>
                 </form>
