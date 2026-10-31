@@ -44,3 +44,7 @@ nginx serves `dist/` with an SPA fallback to `index.html`.
 
 Free text from the backend (`workflow_error`, customer notes, memos, model rationales) is untrusted and is only
 ever rendered as React text nodes, never as HTML.
+
+https://relay-frontend-s78n.onrender.com/support (user pannel)
+
+https://relay-frontend-s78n.onrender.com/ (Admin pannel)
