@@ -168,6 +168,16 @@ function AdminSignInView({ onSignedIn }: AdminSignInViewProps) {
             </div>
           </form>
           {adminError && <InlineError message={adminError} />}
+
+          <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid var(--border)', textAlign: 'center' }}>
+            <span className="muted small">Looking for the customer support chat? </span>
+            <a
+              href="/support"
+              style={{ fontWeight: 600, color: 'var(--accent, #1a73e8)', textDecoration: 'underline', fontSize: '0.88rem' }}
+            >
+              Go to Customer Login ↗
+            </a>
+          </div>
         </section>
       </main>
     </>

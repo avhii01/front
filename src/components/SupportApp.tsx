@@ -362,6 +362,16 @@ function SupportSignIn({
           )}
 
           {error && <InlineError message={error} />}
+
+          <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid var(--border)', textAlign: 'center' }}>
+            <span className="muted small">Are you an operator or administrator? </span>
+            <a
+              href="/"
+              style={{ fontWeight: 600, color: 'var(--accent, #1a73e8)', textDecoration: 'underline', fontSize: '0.88rem' }}
+            >
+              Switch to Operator Admin Sign In ↗
+            </a>
+          </div>
         </section>
       </main>
       <SupportFooter />
