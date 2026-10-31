@@ -35,9 +35,9 @@ interface Props {
   onClose: () => void;
   user: AdminUser;
   onUpdateUser: (updated: Partial<AdminUser>) => void;
-  actions: OperatorAction[];
-  onClearActions: () => void;
-  onSignOut: () => void;
+  actions?: OperatorAction[];
+  onClearActions?: () => void;
+  onSignOut?: () => void;
   initialTab?: 'profile' | 'personal' | 'team' | 'policies' | 'actions';
 }
 
@@ -132,7 +132,7 @@ export function SettingsModal({
   onClose,
   user,
   onUpdateUser,
-  actions,
+  actions = [],
   onClearActions,
   onSignOut,
   initialTab,
@@ -187,6 +187,13 @@ export function SettingsModal({
     return () => window.removeEventListener('relay-team-updated', handleSync);
   }, []);
 
+  // Sync fresh team data from backend with role-based visibility when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      void syncTeamFromBackend(user.role, user.id);
+    }
+  }, [isOpen, user.role, user.id]);
+
   if (!isOpen) return null;
 
   const handleCopyId = () => {
@@ -227,7 +234,7 @@ export function SettingsModal({
         type: 'ok',
         text: `✓ User ID successfully updated to "${res.member.id}" in Neon database!`,
       });
-      void syncTeamFromBackend();
+      void syncTeamFromBackend(user.role, res.member.id);
     } catch (err) {
       setIdNotice({ type: 'error', text: errorMessage(err) });
     } finally {
@@ -265,7 +272,7 @@ export function SettingsModal({
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
-      void syncTeamFromBackend();
+      void syncTeamFromBackend(user.role, user.id);
     } catch (err) {
       setPasswordNotice({ type: 'error', text: errorMessage(err) });
     } finally {
@@ -937,9 +944,11 @@ export function SettingsModal({
                                   <code style={{ fontSize: '0.78rem', background: 'var(--surface-2)', padding: '2px 6px', borderRadius: '4px' }}>
                                     ID: {member.id}
                                   </code>
-                                  <code style={{ fontSize: '0.78rem', background: '#fef7e0', color: '#b06000', padding: '2px 6px', borderRadius: '4px', border: '1px solid #f9ab00' }}>
-                                    🔑 Password: {member.password || 'relay123'}
-                                  </code>
+                                  {isAdmin && member.password && (
+                                    <code style={{ fontSize: '0.78rem', background: '#fef7e0', color: '#b06000', padding: '2px 6px', borderRadius: '4px', border: '1px solid #f9ab00' }}>
+                                      🔑 Password: {member.password}
+                                    </code>
+                                  )}
                                   {isSelf && (
                                     <span className="tag" style={{ background: '#e8f0fe', color: '#1a73e8', fontSize: '0.72rem' }}>
                                       You

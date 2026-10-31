@@ -53,7 +53,6 @@ export const DEFAULT_SUPPORT_TEAM: SupportMember[] = [
     status: 'active',
     activeTicketsCount: 2,
     addedAt: '2026-10-26T09:15:00Z',
-    password: 'relay123',
   },
   {
     id: 'SPT-1003',
@@ -64,7 +63,6 @@ export const DEFAULT_SUPPORT_TEAM: SupportMember[] = [
     status: 'active',
     activeTicketsCount: 3,
     addedAt: '2026-10-27T10:30:00Z',
-    password: 'relay123',
   },
   {
     id: 'SPT-1004',
@@ -75,7 +73,6 @@ export const DEFAULT_SUPPORT_TEAM: SupportMember[] = [
     status: 'active',
     activeTicketsCount: 1,
     addedAt: '2026-10-28T11:45:00Z',
-    password: 'relay123',
   },
 ];
 
@@ -121,10 +118,14 @@ function notifyTeamUpdated() {
 
 let hasInitiatedSync = false;
 
-export async function syncTeamFromBackend(): Promise<SupportMember[]> {
+export async function syncTeamFromBackend(requesterRole?: string, requesterId?: string): Promise<SupportMember[]> {
   if (typeof window === 'undefined') return DEFAULT_SUPPORT_TEAM;
   try {
-    const res = await fetch(`${API_URL}/api/team`, {
+    const params = new URLSearchParams();
+    if (requesterRole) params.append('requester_role', requesterRole);
+    if (requesterId) params.append('requester_id', requesterId);
+    const qs = params.toString() ? `?${params.toString()}` : '';
+    const res = await fetch(`${API_URL}/api/team${qs}`, {
       headers: { Accept: 'application/json' },
     });
     if (!res.ok) return getSupportTeam();
@@ -150,7 +151,7 @@ export async function syncTeamFromBackend(): Promise<SupportMember[]> {
         status: (item.status || 'active') as 'active' | 'away' | 'offline',
         activeTicketsCount: item.active_tickets_count ?? 0,
         addedAt: item.created_at || new Date().toISOString(),
-        password: item.password || (item.id === 'ADM-9041' ? 'admin-relay' : 'relay123'),
+        password: item.password ?? undefined,
         passwordHash: item.password_hash,
       }));
       sessionStorage.setItem(STORAGE_KEY_TEAM, JSON.stringify(mapped));
