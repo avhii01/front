@@ -193,6 +193,13 @@ describe('App', () => {
     expect(screen.getByRole('button', { name: /Sign in as Admin/i })).toBeTruthy();
     expect(screen.queryByText('admin@relay.test')).toBeNull();
     expect(screen.queryByText('admin-relay')).toBeNull();
+
+    // Verify header is clean and does NOT show search bar, sign out button, or app launcher on login screen
+    expect(screen.queryByRole('search')).toBeNull();
+    expect(screen.queryByPlaceholderText(/Search resources, orders, and tickets/i)).toBeNull();
+    expect(screen.queryByRole('button', { name: /Sign out/i })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Open Relay Apps Menu/i })).toBeNull();
+    expect(screen.queryByText(/Recovery decisions come from fixed rules/i)).toBeNull();
   });
 
   it('switches to support tickets view, displays ticket in queue, and opens details workspace when clicked', async () => {

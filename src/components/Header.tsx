@@ -14,6 +14,7 @@ interface Props {
   onOpenHealthModal?: () => void;
   searchQuery?: string;
   onSearchChange?: (q: string) => void;
+  authenticated?: boolean;
 }
 
 export function modeBadgeText(config: AppConfig): string {
@@ -34,6 +35,7 @@ export function Header({
   onOpenHealthModal,
   searchQuery = '',
   onSearchChange,
+  authenticated = Boolean(currentUser),
 }: Props) {
   const [isLauncherOpen, setIsLauncherOpen] = useState(false);
   const launcherRef = useRef<HTMLDivElement>(null);
@@ -72,25 +74,27 @@ export function Header({
       <div className="google-color-stripe" aria-hidden="true" />
       <header className="app-header google-header">
         <div className="google-header__left" style={{ position: 'relative' }} ref={launcherRef}>
-          {/* Interactive 6-Dot Google Cloud App Launcher Button */}
-          <button
-            type="button"
-            className={`google-waffle-btn ${isLauncherOpen ? 'is-active' : ''}`}
-            onClick={() => setIsLauncherOpen(!isLauncherOpen)}
-            title="Google Services & Relay Apps"
-            aria-label="Open Relay Apps Menu"
-            aria-expanded={isLauncherOpen}
-          >
-            <span className="google-waffle__dot"></span>
-            <span className="google-waffle__dot"></span>
-            <span className="google-waffle__dot"></span>
-            <span className="google-waffle__dot"></span>
-            <span className="google-waffle__dot"></span>
-            <span className="google-waffle__dot"></span>
-          </button>
+          {/* Interactive 6-Dot Google Cloud App Launcher Button - only visible when signed in */}
+          {authenticated && (
+            <button
+              type="button"
+              className={`google-waffle-btn ${isLauncherOpen ? 'is-active' : ''}`}
+              onClick={() => setIsLauncherOpen(!isLauncherOpen)}
+              title="Google Services & Relay Apps"
+              aria-label="Open Relay Apps Menu"
+              aria-expanded={isLauncherOpen}
+            >
+              <span className="google-waffle__dot"></span>
+              <span className="google-waffle__dot"></span>
+              <span className="google-waffle__dot"></span>
+              <span className="google-waffle__dot"></span>
+              <span className="google-waffle__dot"></span>
+              <span className="google-waffle__dot"></span>
+            </button>
+          )}
 
           {/* Google Services & Relay Apps Popover */}
-          {isLauncherOpen && (
+          {authenticated && isLauncherOpen && (
             <div className="google-app-launcher-popover" role="menu" aria-label="Relay and Google Cloud apps">
               <div className="google-launcher-header">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -286,19 +290,21 @@ export function Header({
           </div>
         </div>
 
-        {/* Central interactive search bar */}
-        <div className="google-search-bar" role="search">
-          <span className="google-search-icon" aria-hidden="true">🔍</span>
-          <input
-            type="search"
-            value={searchQuery}
-            onChange={(e) => onSearchChange?.(e.target.value)}
-            placeholder="Search resources, orders, and tickets..."
-            className="google-search-input-header"
-            aria-label="Search resources, orders, and tickets"
-          />
-          <kbd className="google-search-shortcut" aria-hidden="true">/</kbd>
-        </div>
+        {/* Central interactive search bar - only available when authenticated and search handler provided */}
+        {authenticated && onSearchChange && (
+          <div className="google-search-bar" role="search">
+            <span className="google-search-icon" aria-hidden="true">🔍</span>
+            <input
+              type="search"
+              value={searchQuery}
+              onChange={(e) => onSearchChange(e.target.value)}
+              placeholder="Search resources, orders, and tickets..."
+              className="google-search-input-header"
+              aria-label="Search resources, orders, and tickets"
+            />
+            <kbd className="google-search-shortcut" aria-hidden="true">/</kbd>
+          </div>
+        )}
 
         {/* Accessible for screen readers and unit tests, kept visually out of header */}
         <div className="sr-only">
@@ -330,7 +336,7 @@ export function Header({
 
         {/* Right Navigation: Operator Profile Pill with ID, Settings Button, Sign Out Button */}
         <div className="google-header__right">
-          {onOpenSettings && (
+          {authenticated && currentUser && onOpenSettings && (
             <button
               type="button"
               className="google-operator-pill"
@@ -348,7 +354,7 @@ export function Header({
             </button>
           )}
 
-          {onOpenSettings && (
+          {authenticated && currentUser && onOpenSettings && (
             <button
               type="button"
               className="btn btn--sm google-btn-settings"
@@ -360,7 +366,7 @@ export function Header({
             </button>
           )}
 
-          {onSignOut && (
+          {authenticated && onSignOut && (
             <button
               type="button"
               className="btn btn--ghost btn--sm google-btn-signout"
@@ -372,7 +378,7 @@ export function Header({
           )}
         </div>
 
-        {config && (
+        {authenticated && config && (
           <p className="app-header__note google-header__note">
             {config.mode === 'llm'
               ? 'A language model proposes each next action; a deterministic policy engine validates every one before it runs.'

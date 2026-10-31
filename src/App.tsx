@@ -128,7 +128,7 @@ function AdminSignInView({ onSignedIn }: AdminSignInViewProps) {
         loading={config.loading}
         error={config.error}
         onRetry={() => void config.refresh()}
-        onSignOut={() => {}}
+        authenticated={false}
       />
       <main className="support-shell">
         <section className="panel support-signin" aria-labelledby="admin-signin-title">
@@ -424,6 +424,7 @@ function OperationsDashboard({ onSignOut, currentUser, onUpdateUser }: Operation
         onOpenHealthModal={() => setIsHealthOpen(true)}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
+        authenticated={true}
       />
 
       {/* Quick Search Flyout Dropdown */}
