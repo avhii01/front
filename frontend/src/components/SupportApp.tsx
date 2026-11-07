@@ -1,4 +1,4 @@
-import { type FormEvent, type ReactNode, useEffect, useRef, useState } from 'react';
+import { type FormEvent, useEffect, useRef, useState } from 'react';
 import { isPageReload } from '../session';
 import {
   ApiError,
@@ -8,14 +8,12 @@ import {
   customerSignOut,
   registerCustomer,
   errorMessage,
-  getConfig,
   getConversation,
   sendChatMessage,
 } from '../api';
 import { formatTime } from '../format';
 import { usePolling } from '../hooks';
 import type {
-  AppConfig,
   Customer as CustomerType,
 } from '../types';
 import { ErrorState, InlineError, Skeleton } from './States';
@@ -82,7 +80,6 @@ function messageOptions(meta: Record<string, unknown>): ChatOption[] {
 
 /** Customer support: simulated sign-in + chat with Salesforce Einstein Bot aesthetic. */
 export default function SupportApp() {
-  const config = usePolling(getConfig, 'support-config', null);
   const [auth, setAuth] = useState<Auth | null>(() => readStoredAuth());
   const [checking, setChecking] = useState<boolean>(() => readStoredAuth() !== null);
   const [signInError, setSignInError] = useState<string | null>(null);
@@ -157,7 +154,6 @@ export default function SupportApp() {
     return (
       <SupportSignIn
         error={signInError}
-        configBadges={<SupportBadges config={config.data} />}
         onSignIn={signIn}
         onRegister={register}
       />
@@ -167,7 +163,6 @@ export default function SupportApp() {
   return (
     <SupportWorkspace
       auth={auth}
-      configBadges={<SupportBadges config={config.data} />}
       onSignOut={() => {
         void customerSignOut(auth.token).catch(() => {});
         persistAuth(null);
@@ -181,19 +176,14 @@ export default function SupportApp() {
   );
 }
 
-function SupportBadges(_: { config: AppConfig | null }) {
-  // Badges removed per user request for clean enterprise customer portal appearance
-  return null;
-}
+
 
 function SupportSignIn({
   error,
-  configBadges,
   onSignIn,
   onRegister,
 }: {
   error: string | null;
-  configBadges: ReactNode;
   onSignIn: (email: string, password: string) => Promise<void>;
   onRegister: (name: string, email: string, userId: string, password: string) => Promise<void>;
 }) {
@@ -224,7 +214,6 @@ function SupportSignIn({
     <>
       <SupportHeader
         subtitle="Customer support · grounded policy answers · order recovery"
-        badges={configBadges}
       />
       <main className="support-shell">
         <section className="panel support-signin slds-auth-card" aria-labelledby="signin-title">
@@ -374,12 +363,10 @@ function SupportSignIn({
 
 function SupportWorkspace({
   auth,
-  configBadges,
   onAuthExpired,
   onSignOut,
 }: {
   auth: Auth;
-  configBadges: ReactNode;
   onAuthExpired: () => void;
   onSignOut: () => void;
 }) {
@@ -460,8 +447,7 @@ function SupportWorkspace({
   return (
     <>
       <SupportHeader
-        subtitle={`Customer support · signed in as ${customer.name} (simulated)`}
-        badges={configBadges}
+        subtitle={`Customer support · signed in as ${customer.name}`}
       />
       <main className="support-layout">
         <section className="support-chat" aria-label="Support chat">
@@ -607,7 +593,7 @@ function SupportWorkspace({
   );
 }
 
-function SupportHeader({ subtitle, badges }: { subtitle: string; badges: ReactNode }) {
+function SupportHeader({ subtitle }: { subtitle: string }) {
   return (
     <header className="app-header support-header slds-support-header">
       <div className="app-header__title">
@@ -615,10 +601,9 @@ function SupportHeader({ subtitle, badges }: { subtitle: string; badges: ReactNo
         <h1>Relay</h1>
         <span className="app-header__subtitle">{subtitle}</span>
       </div>
-      <div className="app-header__badges">{badges}</div>
       <p className="app-header__note">
-        Policy guidance is retrieved from a small, versioned demo knowledge base. Order, payment, inventory and
-        shipping state is always read from the simulated service APIs. The chatbot cannot approve refunds.
+        Policy guidance is retrieved from a small, versioned knowledge base. Order, payment, inventory and
+        shipping state is always read from the live service APIs. The chatbot cannot approve refunds.
       </p>
     </header>
   );
@@ -627,7 +612,7 @@ function SupportHeader({ subtitle, badges }: { subtitle: string; badges: ReactNo
 function SupportFooter() {
   return (
     <footer className="app-footer">
-      Relay customer support · simulated storefront and services · no real money, stock or shipments move
+      Relay customer support · enterprise storefront and customer order recovery portal
     </footer>
   );
 }
