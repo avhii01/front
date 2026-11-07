@@ -25,7 +25,7 @@ Customer operations teams face two major frontend challenges:
 
 Relay provides two distinct, tailored interfaces built with **React 18**, **TypeScript (Strict Mode)**, and **Vite**:
 
-### 1. Google Cloud Operations Console (`/`)
+### 1. Operations Console (`/`)
 * **Live Order Reconciliation Queue:** Real-time visibility into stuck e-commerce orders, categorized by failure modes (`SHIPPING_DELAY`, `PAYMENT_PENDING`, `OUT_OF_STOCK`).
 * **Visual Tool Timeline & Evidence Inspector:** Displays step-by-step agent tool calls, microservice payloads, and deterministic policy decisions.
 * **Microservice Health Topology:** Live status cards for Stripe payments, warehouse inventory, and shipping carrier dispatch.
@@ -34,7 +34,7 @@ Relay provides two distinct, tailored interfaces built with **React 18**, **Type
   * Team passwords are strictly hidden and redacted for non-admin operators.
   * Clean unauthenticated header: search bar, apps launcher, and sign-out buttons are suppressed until authenticated.
 
-### 2. Salesforce SLDS Customer Support Portal (`/support`)
+### 2. Customer Support Portal (`/support`)
 * **Grounded Policy Q&A:** Answers grounded in verified policy documents with clickable section citations.
 * **Order History & Issue Intake:** Allows customers to select past orders and submit verified failure claims.
 * **Confirmation-First Dispatch:** Issues are submitted to background recovery workers only after explicit customer confirmation.
