@@ -41,16 +41,12 @@ Relay provides two distinct, tailored interfaces built with **React 18**, **Type
 
 ---
 
-## 🔑 Login Credentials
+## 🔐 Authentication, Access & Privacy
 
-### Operations Dashboard (`/`)
-* **Admin:** `ADM-9041` / `admin.operator@relay.internal` | Password: `admin-relay`
-* **Specialist:** `SPT-1002` / `sarah.jenkins@relay.internal` | Password: `relay123`
-
-### Customer Support Portal (`/support`)
-* **Alice Demo:** `alice@example.test` | Password: `demo-alice`
-* **Bob Demo:** `bob@example.test` | Password: `demo-bob`
-* *(Or click "Create an account" to sign up with any custom credentials).*
+* **Operator Authentication:** Administrators and support specialists log in via the Operations sign-in view. Session tokens are checked server-side and role boundaries are strictly enforced.
+* **Credential Protection:** Team member passwords in the roster view are strictly restricted to administrators; non-admin operators see all password tags completely hidden.
+* **Customer Self-Service:** Customers authenticate via `/support` or can register new customer accounts directly on the portal. Orders are verified server-side against the authenticated session token.
+* **Zero Credential Exposure:** In accordance with security standards, plaintext passwords are not published in public documentation.
 
 ---
 

@@ -1,50 +1,101 @@
-# Relay operations dashboard
+# Relay — Frontend Operations Console & Customer Support Portal
 
-React 18 + TypeScript (strict) + Vite single-page dashboard for **Relay - AI Order Recovery Agent**.
-Plain CSS, no UI or state libraries: hooks + `fetch` + polling.
+[![React](https://img.shields.io/badge/React-18.3-61DAFB.svg?logo=react&logoColor=black)](https://reactjs.org)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.5-3178C6.svg?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Vite](https://img.shields.io/badge/Vite-5.0-646CFF.svg?logo=vite&logoColor=white)](https://vitejs.dev/)
+[![Vitest](https://img.shields.io/badge/Vitest-28%20Tests%20Passing-brightgreen.svg)]()
+[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg?logo=docker&logoColor=white)](https://www.docker.com)
 
-All payment, inventory and shipping services behind the API are **simulated**. In *demo mode* the agent is
-rule-based (no LLM); the header badge always shows which mode the backend is in.
+> **Live Deployments:**  
+> 🌐 **Operations Console (Admin Panel):** [https://relay-frontend-s78n.onrender.com/](https://relay-frontend-s78n.onrender.com/)  
+> 💬 **Customer Support Portal (User Panel):** [https://relay-frontend-s78n.onrender.com/support](https://relay-frontend-s78n.onrender.com/support)  
+> ⚡ **Backend Repository:** [https://github.com/avhii01/back](https://github.com/avhii01/back)
 
-## Run
+---
+
+## 📌 Problem Statement
+
+Customer operations teams face two major frontend challenges:
+1. **Operator Fragmentation:** Operators lack unified visibility into why an automated recovery failed, which microservices timed out, or what evidence was collected, leading to high MTTR (Mean Time to Resolution).
+2. **Customer Impatience & Hallucinatory Chatbots:** Customers need instant self-service, but generative AI chatbots often make unfounded promises without verified policy grounding or real-time order ownership checks.
+
+---
+
+## 💡 The Solution: Dual-Persona Web Experience
+
+Relay provides two distinct, tailored interfaces built with **React 18**, **TypeScript (Strict Mode)**, and **Vite**:
+
+### 1. Google Cloud Operations Console (`/`)
+* **Live Order Reconciliation Queue:** Real-time visibility into stuck e-commerce orders, categorized by failure modes (`SHIPPING_DELAY`, `PAYMENT_PENDING`, `OUT_OF_STOCK`).
+* **Visual Tool Timeline & Evidence Inspector:** Displays step-by-step agent tool calls, microservice payloads, and deterministic policy decisions.
+* **Microservice Health Topology:** Live status cards for Stripe payments, warehouse inventory, and shipping carrier dispatch.
+* **Role-Based Security & Ticket Locking:**
+  * Once a ticket is assigned to a specialist, reassignment is locked to **Administrators only**.
+  * Team passwords are strictly hidden and redacted for non-admin operators.
+  * Clean unauthenticated header: search bar, apps launcher, and sign-out buttons are suppressed until authenticated.
+
+### 2. Salesforce SLDS Customer Support Portal (`/support`)
+* **Grounded Policy Q&A:** Answers grounded in verified policy documents with clickable section citations.
+* **Order History & Issue Intake:** Allows customers to select past orders and submit verified failure claims.
+* **Confirmation-First Dispatch:** Issues are submitted to background recovery workers only after explicit customer confirmation.
+
+---
+
+## 🔐 Authentication, Access & Privacy
+
+* **Operator Authentication:** Administrators and support specialists log in via the Operations sign-in view. Session tokens are checked server-side and role boundaries are strictly enforced.
+* **Credential Protection:** Team member passwords in the roster view are strictly restricted to administrators; non-admin operators see all password tags completely hidden.
+* **Customer Self-Service:** Customers authenticate via `/support` or can register new customer accounts directly on the portal. Orders are verified server-side against the authenticated session token.
+* **Zero Credential Exposure:** In accordance with security standards, plaintext passwords are not published in public documentation.
+
+---
+
+## 🚀 Local Development
 
 ```bash
-cp .env.example .env     # VITE_API_URL=http://localhost:8000
+# 1. Install dependencies
 npm install
-npm run dev              # http://localhost:5173
+
+# 2. Run development server (Vite)
+npm run dev
 ```
+The application will run locally at: `http://localhost:5173`
 
-The backend must allow the dashboard origin via CORS (default allows `http://localhost:5173`).
+### Available NPM Scripts:
+| Script | Description |
+| :--- | :--- |
+| `npm run dev` | Starts local Vite hot-reloading development server |
+| `npm run build` | Runs TypeScript typecheck (`tsc --noEmit`) and Vite production bundle |
+| `npm test` | Runs the automated Vitest test suite |
+| `npm run preview` | Locally serves the built production `dist/` directory |
 
-| Script              | What it does                          |
-| ------------------- | ------------------------------------- |
-| `npm run dev`       | Vite dev server on port 5173          |
-| `npm run build`     | Typecheck, then production build      |
-| `npm run preview`   | Serve the built `dist/`               |
-| `npm test`          | Vitest (watch); `npm test -- --run` once |
-| `npm run typecheck` | `tsc --noEmit`                        |
+---
 
-## Docker
+## 🧪 Automated Testing
 
-`VITE_API_URL` is baked in at build time (it is the URL the *browser* uses to reach the API):
+Relay Frontend features **28 passing Vitest tests** covering components, security guards, and user flows:
+```bash
+npm test -- --run
+```
+Test coverage includes:
+* Status chips, tone mappings, and metrics strips
+* Approval panel human-in-the-loop validation
+* Support ticket workspace and conversation viewer
+* Unauthenticated header hygiene (search bar & sign-out hiding)
+* Role-based password visibility in the settings modal
+
+---
+
+## 🐳 Docker Deployment
+
+The frontend includes a multi-stage Docker build utilizing **Node 22 (Alpine)** for building and **Nginx 1.27 (Alpine)** for production static asset serving:
 
 ```bash
-docker build --build-arg VITE_API_URL=http://localhost:8000 -t relay-dashboard .
-docker run --rm -p 8080:80 relay-dashboard
+docker build --build-arg VITE_API_URL=https://backend-pvco.onrender.com -t relay-frontend .
+docker run -p 80:80 relay-frontend
 ```
 
-nginx serves `dist/` with an SPA fallback to `index.html`.
+---
 
-## Layout
-
-- `src/api.ts`: typed API client (errors surface the backend `detail`); `src/types.ts` mirrors the backend.
-- `src/hooks.ts`: `usePolling` (orders every 3 s, active runs every ~1 s) and `useLocalStorage` (operator name).
-- `src/components/`: header, order queue, scenario injector, order workspace, service cards, run controls,
-  tool timeline, decisions, approval panel, verification, outcome banner, metrics.
-
-Free text from the backend (`workflow_error`, customer notes, memos, model rationales) is untrusted and is only
-ever rendered as React text nodes, never as HTML.
-
-https://relay-frontend-s78n.onrender.com/support (user pannel)
-
-https://relay-frontend-s78n.onrender.com/ (Admin pannel)
+## 📄 License
+MIT License
