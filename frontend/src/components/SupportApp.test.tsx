@@ -267,4 +267,18 @@ describe('SupportApp', () => {
     expect(screen.queryByRole('heading', { name: 'Your tickets' })).toBeNull();
     expect(screen.queryByRole('heading', { name: 'Conversations' })).toBeNull();
   });
+
+  it('automatically logs out customer and clears session when tab is closed and reopened (non-reload navigation)', async () => {
+    vi.spyOn(window.performance, 'getEntriesByType').mockReturnValue([
+      { type: 'navigate' } as PerformanceNavigationTiming,
+    ]);
+    window.sessionStorage.setItem('relay.customer.token', 'leftover_customer_token');
+    window.sessionStorage.setItem('relay.customer', JSON.stringify({ id: 'cus_1', name: 'Leftover Customer' }));
+
+    render(<SupportApp />);
+
+    expect(await screen.findByRole('heading', { name: /Sign in to the demo store/i })).toBeTruthy();
+    expect(window.sessionStorage.getItem('relay.customer.token')).toBeNull();
+    expect(window.sessionStorage.getItem('relay.customer')).toBeNull();
+  });
 });

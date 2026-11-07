@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { isPageReload } from './session';
 import { API_URL, adminSignIn, errorMessage, getConfig, listOrders, listTickets } from './api';
 import { Header } from './components/Header';
 import { OrderQueue } from './components/OrderQueue';
@@ -28,6 +29,12 @@ const ADMIN_ACTIONS_KEY = 'relay.admin.actions';
 
 function readStoredAdminToken(): string | null {
   try {
+    if (!isPageReload()) {
+      sessionStorage.removeItem(ADMIN_TOKEN_KEY);
+      sessionStorage.removeItem(ADMIN_USER_KEY);
+      sessionStorage.removeItem(ADMIN_ACTIONS_KEY);
+      return null;
+    }
     return sessionStorage.getItem(ADMIN_TOKEN_KEY);
   } catch {
     return null;
@@ -36,8 +43,10 @@ function readStoredAdminToken(): string | null {
 
 function readStoredAdminUser(): AdminUser {
   try {
-    const raw = sessionStorage.getItem(ADMIN_USER_KEY);
-    if (raw) return JSON.parse(raw);
+    if (isPageReload()) {
+      const raw = sessionStorage.getItem(ADMIN_USER_KEY);
+      if (raw) return JSON.parse(raw);
+    }
   } catch {
     // fallback
   }

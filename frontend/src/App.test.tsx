@@ -227,4 +227,18 @@ describe('App', () => {
     expect(screen.getByRole('button', { name: /^Hold$/i })).toBeTruthy();
     expect(screen.getByRole('button', { name: /Resolve \(Permanent\)/i })).toBeTruthy();
   });
+
+  it('automatically logs out admin and clears session when tab is closed and reopened (non-reload navigation)', async () => {
+    vi.spyOn(window.performance, 'getEntriesByType').mockReturnValue([
+      { type: 'navigate' } as PerformanceNavigationTiming,
+    ]);
+    window.sessionStorage.setItem('relay.admin.token', 'leftover_token');
+    window.sessionStorage.setItem('relay.admin.user', JSON.stringify({ id: 'ADM-9041', name: 'Admin Operator' }));
+
+    render(<App />);
+
+    expect(await screen.findByRole('heading', { name: /Operator Dashboard · Admin Sign In/i })).toBeTruthy();
+    expect(window.sessionStorage.getItem('relay.admin.token')).toBeNull();
+    expect(window.sessionStorage.getItem('relay.admin.user')).toBeNull();
+  });
 });
