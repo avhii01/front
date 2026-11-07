@@ -628,7 +628,7 @@ function OperationsDashboard({ onSignOut, currentUser, onUpdateUser }: Operation
 
       {/* Page Note Footer strictly below the page */}
       <footer className="app-footer">
-        Relay operations dashboard · all payment, inventory and shipping services are simulated · API: <code>{API_URL}</code>
+        Relay operations dashboard · payment, inventory and carrier recovery mesh · API: <code>{API_URL}</code>
       </footer>
     </>
   );

@@ -378,13 +378,7 @@ export function Header({
           )}
         </div>
 
-        {authenticated && config && (
-          <p className="app-header__note google-header__note">
-            {config.mode === 'llm'
-              ? 'A language model proposes each next action; a deterministic policy engine validates every one before it runs.'
-              : 'Recovery decisions come from fixed rules and a deterministic policy engine. No language model is involved.'}
-          </p>
-        )}
+
       </header>
     </>
   );
